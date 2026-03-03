@@ -1,0 +1,71 @@
+# =============================================================================
+#  TTS Pipeline — Requirements
+#  Python 3.10+   |   GTX 1650 4 GB VRAM   |   French Medical
+# =============================================================================
+
+# ── Core audio processing ──────────────────────────────────────────────────
+librosa>=0.10.0
+soundfile>=0.12.1
+pydub>=0.25.1          # format conversion (mp3/flac/m4a → wav)
+audioread>=3.0.0       # backend for pydub/librosa
+noisereduce>=3.0.0     # Stage 1: noise reduction
+
+# ── VAD (Voice Activity Detection) ────────────────────────────────────────
+silero-vad>=4.0.0      # Stage 1: speech segment detection
+# Note: silero-vad pulls in torch automatically
+
+# ── PyTorch (GPU — CUDA 11.8 wheels; adjust for your CUDA version) ────────
+# For CUDA 12.x: pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu121
+# For CPU only:  pip install torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+torch>=2.0.0
+torchaudio>=2.0.0
+
+# ── TTS Generation (Stage 3) ──────────────────────────────────────────────
+edge-tts>=6.1.9        # Microsoft Edge neural TTS (free, no API key)
+
+# ── Dataset Quality Check (Stage 4) ──────────────────────────────────────
+openai-whisper>=20231117   # Whisper transcription for WER checking
+jiwer>=3.0.0               # Word Error Rate calculation
+
+# ── Data handling ──────────────────────────────────────────────────────────
+pandas>=2.0.0
+numpy>=1.24.0
+
+# ── Model Training (Stage 5) ──────────────────────────────────────────────
+# Coqui TTS — installs the trainer + VITS + XTTS
+TTS>=0.22.0
+trainer>=0.0.36            # Coqui Trainer (separate package)
+
+# ── Text processing ────────────────────────────────────────────────────────
+num2words>=0.5.12          # Number → French words (optional, for preprocessing)
+
+# ── Utilities ─────────────────────────────────────────────────────────────
+tqdm>=4.65.0               # Progress bars
+pyyaml>=6.0                # Config loading
+tensorboard>=2.13.0        # Training visualisation
+
+# ── FFmpeg Python wrapper (for format detection) ──────────────────────────
+ffmpeg-python>=0.2.0
+
+# =============================================================================
+# Installation
+# =============================================================================
+# 1. Create a virtual environment:
+#      python -m venv venv
+#      venv\Scripts\activate          (Windows)
+#      source venv/bin/activate       (Linux/macOS)
+#
+# 2. Install PyTorch for your CUDA version FIRST:
+#      pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu118
+#
+# 3. Install everything else:
+#      pip install -r requirements.txt
+#
+# 4. Install FFmpeg system-wide (required by pydub):
+#      Windows: winget install ffmpeg
+#      Linux:   sudo apt install ffmpeg
+#
+# 5. Install espeak-ng (required by VITS phonemizer):
+#      Windows: https://github.com/espeak-ng/espeak-ng/releases
+#      Linux:   sudo apt install espeak-ng
+# =============================================================================

@@ -2,8 +2,8 @@ import librosa
 import soundfile as sf
 import os
 
-MP3_DIR = "DATA prete"
-WAV_DIR = "data/wav"
+MP3_DIR = r"C:\Users\MSI\Downloads\DATA prete-20260203T090516Z-3-001\data\DATASET cérébral texte et audio"
+WAV_DIR = r"C:\Users\MSI\Downloads\DATA prete-20260203T090516Z-3-001\data\DATASET cérébral texte et audio/wav"
 
 os.makedirs(WAV_DIR, exist_ok=True)
 

@@ -1,0 +1,162 @@
+# =============================================================================
+#  TTS Pipeline — Master Configuration
+#  Language: French (Medical)   Hardware: GTX 1650 4 GB VRAM
+# =============================================================================
+
+# --- Global ----------------------------------------------------------------
+language: "fr"
+language_name: "French"
+domain: "medical"
+sample_rate: 22050          # Hz — used by all stages unless overridden
+
+# --- Paths (relative to tts_pipeline/ directory) ---------------------------
+paths:
+  raw_input:    "./raw"             # Your source WAV files go here
+  cleaned:      "./output/cleaned"
+  concatenated: "./output/concatenated"
+  generated:    "./output/generated"
+  dataset:      "./output/dataset"
+  training:     "./output/training"
+  logs:         "./logs"
+
+# =============================================================================
+# STAGE 1 — Audio Cleaning
+# =============================================================================
+stage1:
+  sample_rate: 22050
+  channels: 1                   # 1 = mono
+
+  normalization: "rms"          # "rms" | "peak"
+  target_rms_db: -20.0          # dBFS target for RMS normalization
+  peak_headroom_db: -1.0        # dBFS headroom for peak normalization
+
+  noise_reduction:
+    enabled: true
+    prop_decrease: 0.75         # 0.0 – 1.0  (how aggressively to reduce noise)
+    stationary: false           # true for consistent background noise
+
+  vad:
+    method: "silero"            # "silero" | "librosa"
+    # Silero-specific
+    min_speech_duration_ms: 200
+    min_silence_duration_ms: 500
+    speech_pad_ms: 100          # padding added around speech timestamps
+    # Librosa fallback (top_db for librosa.effects.split)
+    top_db: 35
+
+  segment_filter:
+    min_duration_s: 1.0
+    max_duration_s: 15.0
+
+  supported_formats:
+    - wav
+    - mp3
+    - flac
+    - m4a
+    - ogg
+
+# =============================================================================
+# STAGE 2 — Audio Concatenation
+# =============================================================================
+stage2:
+  silence_between_clips_ms: 500   # silence gap between clips
+  max_output_duration_s: 300      # split output files at this duration (5 min)
+  fade_in_ms: 10
+  fade_out_ms: 10
+
+# =============================================================================
+# STAGE 3 — TTS Generation  (Edge-TTS, French)
+# =============================================================================
+stage3:
+  engine: "edge-tts"
+  # French voices: fr-FR-DeniseNeural (F), fr-FR-HenriNeural (M),
+  #                fr-FR-EloiseNeural (F), fr-BE-CharlineNeural (Belgian F)
+  voice: "fr-FR-DeniseNeural"
+  rate: "+0%"                 # speaking rate adjustment, e.g. "-10%" to slow down
+  volume: "+0%"
+  output_format: "wav"
+  error_log: "stage3_errors.log"
+
+# =============================================================================
+# STAGE 4 — Dataset Preparation
+# =============================================================================
+stage4:
+  # Whisper transcription for quality-check
+  whisper_model: "medium"     # tiny | base | small | medium | large
+  whisper_language: "fr"
+  whisper_device: "cuda"      # "cuda" | "cpu"
+  mismatch_threshold: 0.35    # WER above this → segment flagged (not removed)
+
+  # Text normalisation
+  text_normalization:
+    lowercase: true
+    remove_special_chars: true
+    expand_abbreviations: true
+
+  # Duration filter (applied again here after potential re-check)
+  min_duration_s: 1.0
+  max_duration_s: 15.0
+
+  # Train / val / test split (must sum to 1.0)
+  train_ratio: 0.90
+  val_ratio:   0.05
+  test_ratio:  0.05
+
+  random_seed: 42
+
+# =============================================================================
+# STAGE 5 — Model Training
+# =============================================================================
+stage5:
+  # ---------------------------------------------------------------
+  # "vits"  → trains from scratch, works on 4 GB VRAM  ✅
+  # "xtts"  → fine-tunes XTTS v2, needs ≥6 GB VRAM      ⚠️
+  # ---------------------------------------------------------------
+  model: "vits"
+
+  # --- VITS (recommended for GTX 1650 4 GB) -------------------
+  vits:
+    # Set to a Coqui pretrained VITS model path/name to fine-tune,
+    # or leave null to train from scratch.
+    base_model: null
+    phoneme_language: "fr-fr"    # espeak language code
+    use_phonemes: true
+    batch_size: 8
+    eval_batch_size: 8
+    grad_clip: 1000.0
+    learning_rate: 2.0e-4
+    betas: [0.8, 0.99]
+    eps: 1.0e-9
+    lr_decay: 0.999875
+    epochs: 1000
+    checkpoint_every_n_steps: 1000
+    eval_every_n_steps: 500
+    mixed_precision: true        # fp16 — saves ~40 % VRAM
+    num_loader_workers: 2
+    test_sentences:
+      - "Le patient présente une tachycardie sinusale à quatre-vingt-dix battements par minute."
+      - "La pression artérielle est de cent vingt sur quatre-vingts millimètres de mercure."
+      - "Le traitement prescrit est de cinq milligrammes d'amoxicilline deux fois par jour."
+
+  # --- XTTS v2 (fine-tune, needs ≥6 GB VRAM) -----------------
+  # WARNING: GTX 1650 has 4 GB. Training will likely OOM.
+  # Use for inference testing only, or run on a cloud GPU.
+  xtts:
+    base_model: "tts_models/multilingual/multi-dataset/xtts_v2"
+    fine_tune: true
+    batch_size: 1
+    gradient_accumulation_steps: 16
+    learning_rate: 5.0e-6
+    epochs: 50
+    checkpoint_every_n_steps: 500
+    eval_every_n_steps: 100
+    fp16: true
+    gradient_checkpointing: true
+    num_loader_workers: 0        # 0 = main process only (saves RAM)
+    speaker_name: "voice_fr_medical"
+    test_sentence: "Le patient présente une tachycardie sinusale."
+
+  # --- Common ---------------------------------------------------
+  tensorboard: true
+  save_best_model: true
+  random_seed: 42
