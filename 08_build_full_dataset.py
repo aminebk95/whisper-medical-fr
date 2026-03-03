@@ -29,8 +29,12 @@ CEREBRAL_WAV_DIR = os.path.join(CEREBRAL_DIR, "wav")
 NEW_AUDIO_DIR    = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\data\new\audio"
 NEW_RAPPORTS_DIR = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\data\new\rapports"
 
-# 4) Fichier de sortie global
-# Version "clean" : uniquement WAV, aucune donnée augmentée, pas d'ancien CSV utilisé.
+# 5) TTS pipeline — WAVs ct_ / us2_ déjà générés par stage3_generate.py
+#    metadata.csv format : filename|text  (pipe-separated, with header)
+MERGED_WAV_DIR  = r"C:\tts\output\merged"
+MERGED_META_CSV = r"C:\tts\output\merged\metadata.csv"
+
+# Sortie globale
 OUTPUT_CSV = os.path.join(DATA_DIR, "dataset_all_clean.csv")
 
 
@@ -207,6 +211,53 @@ def build_new_rows() -> List[Tuple[str, str, str, str]]:
     return rows
 
 
+def build_merged_rows() -> List[Tuple[str, str, str, str]]:
+    """
+    Charge les WAVs ct_ / us2_ depuis C:\\tts\\output\\merged\\ en lisant
+    metadata.csv (pipe-separated : filename|text ou filename|text|norm_text).
+    Ces fichiers ont déjà été générés par tts_pipeline/stage3_generate.py.
+    """
+    rows: List[Tuple[str, str, str, str]] = []
+
+    if not os.path.exists(MERGED_META_CSV):
+        return rows
+    if not os.path.isdir(MERGED_WAV_DIR):
+        return rows
+
+    with open(MERGED_META_CSV, newline="", encoding="utf-8") as f:
+        # Détecter si le séparateur est | ou ,
+        sample = f.read(2048)
+        f.seek(0)
+        delim = "|" if "|" in sample else ","
+        reader = csv.reader(f, delimiter=delim)
+        header = next(reader, None)   # sauter l'en-tête si présent
+        # Si la première ligne ne ressemble pas à un header, la retraiter
+        if header and not any(c.lower() in ("filename", "text", "fichier") for c in header):
+            rows_raw = [header] + list(reader)
+        else:
+            rows_raw = list(reader)
+
+    for i, row in enumerate(rows_raw, start=1):
+        if len(row) < 2:
+            continue
+        filename      = row[0].strip()
+        transcription = row[1].strip()
+        if not filename or not transcription:
+            continue
+        # Construire le chemin absolu vers le WAV
+        if not filename.lower().endswith(".wav"):
+            filename += ".wav"
+        audio_path = os.path.join(MERGED_WAV_DIR, filename)
+        if not os.path.exists(audio_path):
+            continue
+        stem   = os.path.splitext(filename)[0]
+        source = "ct_generated" if stem.startswith("ct_") else \
+                 "us2_generated" if stem.startswith("us2_") else "merged_generated"
+        rows.append((stem, audio_path, transcription, source))
+
+    return rows
+
+
 def build_tts_rows() -> List[Tuple[str, str, str, str]]:
     """
     Charge les données TTS générées par 02_generate_tts.py.
@@ -249,7 +300,11 @@ def main() -> None:
     new_rows = build_new_rows()
     all_rows.extend(new_rows)
 
-    # 4) Données TTS générées (02_generate_tts.py) — optionnel
+    # 4) WAVs ct_ / us2_ depuis C:\tts\output\merged\ (déjà générés)
+    merged_rows = build_merged_rows()
+    all_rows.extend(merged_rows)
+
+    # 5) Données TTS générées (02_generate_tts.py) — optionnel
     tts_rows = build_tts_rows()
     all_rows.extend(tts_rows)
 
@@ -269,10 +324,14 @@ def main() -> None:
     print(f"  Total d'entrées : {len(all_rows)}")
     for src, n in counts.items():
         print(f"  {src}: {n}")
-    if tts_rows:
-        print(f"\n  ℹ️  Données TTS incluses depuis tts_generated.csv")
+    if merged_rows:
+        print(f"\n  ℹ️  WAVs merged (ct_/us2_) inclus : {len(merged_rows)} depuis {MERGED_WAV_DIR}")
     else:
-        print(f"\n  ℹ️  Pas de données TTS (lancez d'abord 02_generate_tts.py)")
+        print(f"\n  ℹ️  Aucun WAV merged trouvé (chemin : {MERGED_META_CSV})")
+    if tts_rows:
+        print(f"  ℹ️  TTS Edge-TTS inclus : {len(tts_rows)} depuis tts_generated.csv")
+    else:
+        print(f"  ℹ️  Pas de données TTS Edge-TTS (lancez d'abord 02_generate_tts.py)")
 
 
 if __name__ == "__main__":
