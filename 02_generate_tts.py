@@ -56,15 +56,14 @@ except ImportError:
 BASE     = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE, "data")
 
-# Sources de texte (mêmes chemins que 08_build_full_dataset.py)
-RTF_PATH         = os.path.join(BASE, "expression médicale.rtf")
-CEREBRAL_PDF     = os.path.join(DATA_DIR, "DATASET cérébral texte et audio",
-                                "textes_à_dicter_final head Mez.pdf")
-NEW_RAPPORTS_DIR = os.path.join(DATA_DIR, "new", "rapports")
+# ── Chemins sources (remote desktop : C:\Users\amine&ranim\...) ────────────
+RTF_PATH = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\expression médicale.rtf"
+CEREBRAL_PDF = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\data\cleaned_DATASET_cérébral_texte_et_audio\textes_à_dicter_final head Mez.pdf"
+NEW_RAPPORTS_DIR = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\data\new\rapports"
 
-# Sortie
-OUTPUT_AUDIO_DIR = os.path.join(DATA_DIR, "tts_generated")
-OUTPUT_CSV       = os.path.join(DATA_DIR, "tts_generated.csv")
+# Sortie (dans le même dossier projet)
+OUTPUT_AUDIO_DIR = os.path.join(BASE, "data", "tts_generated")
+OUTPUT_CSV       = os.path.join(BASE, "data", "tts_generated.csv")
 
 # Edge-TTS
 VOICES         = ["fr-FR-DeniseNeural", "fr-FR-HenriNeural"]

@@ -13,21 +13,21 @@ except ImportError:
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# --- PATHS ---
+# --- PATHS (remote desktop : C:\Users\amine&ranim\Desktop\DATA prete-...) ---
 DATA_DIR = os.path.join(BASE_DIR, "data")
 
-# 1) Expression médicale : RTF + WAV (pas de vieux CSV, pas de data_augmented)
-RTF_PATH = os.path.join(BASE_DIR, "expression médicale.rtf")
+# 1) Expression médicale : RTF + WAV
+RTF_PATH     = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\expression médicale.rtf"
 EXPR_WAV_DIR = os.path.join(DATA_DIR, "wav")
 
-# 2) Dataset cérébral (PDF + WAV, dans un sous-dossier 'wav')
-CEREBRAL_DIR = os.path.join(DATA_DIR, "DATASET cérébral texte et audio")
-CEREBRAL_PDF = os.path.join(CEREBRAL_DIR, "textes_à_dicter_final head Mez.pdf")
+# 2) Dataset cérébral (PDF + WAV)
+CEREBRAL_DIR     = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\data\cleaned_DATASET_cérébral_texte_et_audio"
+CEREBRAL_PDF     = os.path.join(CEREBRAL_DIR, "textes_à_dicter_final head Mez.pdf")
 CEREBRAL_WAV_DIR = os.path.join(CEREBRAL_DIR, "wav")
 
 # 3) Nouveau dataset (audio wav + rapports txt)
-NEW_AUDIO_DIR = os.path.join(DATA_DIR, "new", "audio")
-NEW_RAPPORTS_DIR = os.path.join(DATA_DIR, "new", "rapports")
+NEW_AUDIO_DIR    = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\data\new\audio"
+NEW_RAPPORTS_DIR = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\data\new\rapports"
 
 # 4) Fichier de sortie global
 # Version "clean" : uniquement WAV, aucune donnée augmentée, pas d'ancien CSV utilisé.
