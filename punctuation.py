@@ -23,31 +23,36 @@ import sys
 
 VERBAL_COMMANDS = [
     # Sauts de ligne
-    (r"\bnouveau paragraphe\b",             "\n\n"),
-    (r"\bnouvelle ligne\b",                 "\n"),
-    (r"\bà la ligne\b",                     "\n"),
-    (r"\bsaut de ligne\b",                  "\n"),
+    (r"\bnouveau paragraphe\b",                         "\n\n"),
+    (r"\bnouvelle ligne\b",                             "\n"),
+    (r"\bà la ligne\b",                                 "\n"),
+    (r"\bsaut de ligne\b",                              "\n"),
 
-    # Ponctuation de fin
-    (r"\bpoint d[' ]interrogation\b",       "?"),
-    (r"\bpoint d[' ]exclamation\b",         "!"),
-    (r"\bpoint virgule\b",                  ";"),
-    (r"\bpoints de suspension\b",           "..."),
-    (r"\bpoint\b",                          "."),
+    # Ponctuation de fin — AVANT "point" seul pour éviter collision
+    (r"\bpoints? d[' ]interrogation\b",                 "?"),
+    (r"\bpoints? d[' ]exclamation\b",                   "!"),
+    (r"\bpoints? virgule\b",                            ";"),
+    (r"\bpoints? de suspension\b",                      "..."),
+
+    # "deux points" / "de points" / "des points" → deux-points (:)
+    # Whisper transcrit souvent "deux points" en "de points"
+    (r"\b(?:deux|de|des)\s+points?\b",                  ":"),
+
+    # "point" ou "points" seul → point final
+    (r"\bpoints?\b",                                    "."),
 
     # Ponctuation interne
-    (r"\bdeux points\b",                    ":"),
-    (r"\bvirgule\b",                        ","),
-    (r"\btiret\b",                          "-"),
-    (r"\bslash\b",                          "/"),
+    (r"\bvirgule\b",                                    ","),
+    (r"\btiret\b",                                      "-"),
+    (r"\bslash\b",                                      "/"),
 
     # Parenthèses / guillemets
-    (r"\bouvr(?:ez|ir) (?:la )?parenth[èe]se\b",  "("),
-    (r"\bferm(?:ez|er) (?:la )?parenth[èe]se\b",  ")"),
-    (r"\bparenth[èe]se (?:ouvrante|ouverte)\b",    "("),
-    (r"\bparenth[èe]se fermante\b",                ")"),
-    (r"\bouvr(?:ez|ir) (?:les )?guillemets\b",     '"'),
-    (r"\bferm(?:ez|er) (?:les )?guillemets\b",     '"'),
+    (r"\bouvr(?:ez|ir) (?:la )?parenth[èe]se\b",       "("),
+    (r"\bferm(?:ez|er) (?:la )?parenth[èe]se\b",       ")"),
+    (r"\bparenth[èe]se (?:ouvrante|ouverte)\b",         "("),
+    (r"\bparenth[èe]se fermante\b",                     ")"),
+    (r"\bouvr(?:ez|ir) (?:les )?guillemets\b",          '"'),
+    (r"\bferm(?:ez|er) (?:les )?guillemets\b",          '"'),
 ]
 
 
