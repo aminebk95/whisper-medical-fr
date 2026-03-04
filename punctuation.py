@@ -75,8 +75,8 @@ def apply_verbal_commands(text: str) -> str:
     result = re.sub(r",\s*\.", ".", result)         # ,. → .
     result = re.sub(r"\.\s*,", ".", result)         # ., → .
 
-    result = re.sub(r"\s{2,}", " ", result)
-    result = re.sub(r" \n", "\n", result)
+    result = re.sub(r" *\n *", "\n", result)    # espaces autour des sauts de ligne
+    result = re.sub(r"[^\S\n]{2,}", " ", result) # espaces multiples (sans toucher \n)
     result = result.strip()
 
     result = _capitalize_sentences(result)
