@@ -30,8 +30,10 @@ from transformers import WhisperForConditionalGeneration, WhisperProcessor
 # ══════════════════════════════════════════════════════════════════════════════
 
 BASE       = os.path.dirname(os.path.abspath(__file__))
-MODEL_DIR  = os.path.join(BASE, "data", "whisper-medical-fr-v6")
-OUTPUT_WAV = os.path.join(BASE, "data", "recorded_temp.wav")
+# Charge depuis HuggingFace Hub si le dossier local n'existe pas
+_LOCAL     = os.path.join(BASE, "data", "whisper-medical-fr-v6")
+MODEL_DIR  = _LOCAL if os.path.isdir(_LOCAL) else "amnbk/whisper-medical-fr"
+OUTPUT_WAV = os.path.join(BASE, "recorded_temp.wav")
 
 SAMPLE_RATE = 16000   # Hz — format attendu par Whisper
 
@@ -93,11 +95,7 @@ def audio_callback(indata, frames, time_info, status):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def load_model():
-    if not os.path.isdir(MODEL_DIR):
-        raise FileNotFoundError(
-            f"Modèle introuvable : {MODEL_DIR}\n"
-            f"Lancez d'abord 04_train_whisper.py"
-        )
+    print(f"  Modèle      : {MODEL_DIR}")
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"  Appareil    : {device}")
     if device == "cuda":
