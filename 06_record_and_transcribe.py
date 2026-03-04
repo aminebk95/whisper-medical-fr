@@ -24,6 +24,7 @@ import keyboard
 import torch
 import librosa
 from transformers import WhisperForConditionalGeneration, WhisperProcessor
+from punctuation import process as apply_punctuation
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CONFIG
@@ -179,11 +180,18 @@ def main():
 
     # Transcrire
     print("\nTranscription en cours...")
-    text = transcribe(audio, processor, model, device)
+    raw = transcribe(audio, processor, model, device)
+
+    # Ponctuation
+    print("Application de la ponctuation...")
+    text = apply_punctuation(raw, auto=True)
 
     print()
     print("=" * 60)
-    print("TRANSCRIPTION :")
+    print("TRANSCRIPTION BRUTE :")
+    print(raw)
+    print("─" * 60)
+    print("TRANSCRIPTION FINALE (avec ponctuation) :")
     print("=" * 60)
     print(text)
     print("=" * 60)
