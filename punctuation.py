@@ -56,9 +56,22 @@ VERBAL_COMMANDS = [
 ]
 
 
+def strip_whisper_punctuation(text: str) -> str:
+    """
+    Supprime la ponctuation automatique ajoutée par Whisper avant traitement.
+    On garde : tirets (termes médicaux), apostrophes (français), chiffres.
+    """
+    # Supprimer . , ! ? ; ajoutés par Whisper (pas : ni - ni ')
+    result = re.sub(r"(?<!\d)[.,!?;](?!\d)", " ", text)
+    result = re.sub(r"[^\S\n]{2,}", " ", result)
+    return result.strip()
+
+
 def apply_verbal_commands(text: str) -> str:
     """Remplace les commandes verbales par les symboles de ponctuation."""
-    result = text.lower()
+    # Étape 0 : nettoyer la ponctuation Whisper avant traitement
+    result = strip_whisper_punctuation(text)
+    result = result.lower()
 
     for pattern, replacement in VERBAL_COMMANDS:
         result = re.sub(pattern, replacement, result, flags=re.IGNORECASE)
