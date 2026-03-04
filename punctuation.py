@@ -34,9 +34,9 @@ VERBAL_COMMANDS = [
     (r"\bpoints? virgule\b",                            ";"),
     (r"\bpoints? de suspension\b",                      "..."),
 
-    # "deux points" / "de points" / "des points" / "de pointe" → deux-points (:)
-    # Whisper transcrit souvent "deux points" en "de points" ou "de pointe"
-    (r"\b(?:deux|de|des)\s+pointe?s?\b",                ":"),
+    # "deux points" → deux-points (:)
+    # Variantes Whisper : "de points", "des points", "de pointe", "2 points", "2 point"
+    (r"\b(?:deux|de|des|2)\s+pointe?s?\b",              ":"),
 
     # "point" ou "points" seul → point final
     (r"\bpoints?\b",                                    "."),
