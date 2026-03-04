@@ -61,13 +61,27 @@ RTF_PATH = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\expr
 CEREBRAL_PDF = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\data\cleaned_DATASET_cérébral_texte_et_audio\textes_à_dicter_final head Mez.pdf"
 NEW_RAPPORTS_DIR = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\data\new\rapports"
 
+# ── Nouveaux fichiers texte CT / MR / US ───────────────────────────────────
+CT_TXT  = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\data\textes_a_dicter_final CT.txt"
+MR_TXT  = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\data\textes_a_dicter_final MR (1).txt"
+US_TXT  = r"C:\Users\amine&ranim\Desktop\DATA prete-20260203T090516Z-3-001\data\textes_a_dicter_final US (2).txt"
+
 # Sortie (dans le même dossier projet)
 OUTPUT_AUDIO_DIR = os.path.join(BASE, "data", "tts_generated")
 OUTPUT_CSV       = os.path.join(BASE, "data", "tts_generated.csv")
 
-# Edge-TTS
-VOICES         = ["fr-FR-DeniseNeural", "fr-FR-HenriNeural"]
-RATE           = "+0%"
+# Edge-TTS — 8 voix (4 femmes / 4 hommes) avec vitesses variées
+# Format : (voix, débit)  — débit varie pour diversité acoustique
+VOICE_CONFIGS: List[Tuple[str, str]] = [
+    ("fr-FR-DeniseNeural",               "-5%"),  # F — débit lent
+    ("fr-FR-HenriNeural",                "+0%"),  # M — débit normal
+    ("fr-FR-VivienneMultilingualNeural", "+5%"),  # F — débit rapide
+    ("fr-FR-RemyMultilingualNeural",     "-5%"),  # M — débit lent
+    ("fr-CA-SylvieNeural",               "+0%"),  # F — accent canadien
+    ("fr-CA-JeanNeural",                 "+5%"),  # M — accent canadien
+    ("fr-BE-CharlineNeural",             "+0%"),  # F — accent belge
+    ("fr-BE-GerardNeural",               "-5%"),  # M — accent belge
+]
 VOLUME         = "+0%"
 SAMPLE_RATE    = 16000
 MIN_CHAR       = 8      # Phrases trop courtes ignorées
@@ -152,14 +166,45 @@ def load_rapport_sentences() -> List[Tuple[str, str]]:
     return results
 
 
+def load_txt_file_sentences(path: str, source_tag: str) -> List[Tuple[str, str]]:
+    """Charge les phrases d'un fichier TXT unique (CT, MR ou US).
+
+    Stratégie :
+    - Chaque bloc séparé par une ligne vide = un segment
+    - Segments longs (> 200 car.) découpés sur la ponctuation
+    - Phrases trop courtes ignorées
+    """
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as f:
+            text = f.read()
+    except Exception as e:
+        print(f"  ⚠️  {source_tag} : {e}")
+        return []
+
+    results = []
+    # Découper sur les lignes vides → blocs/paragraphes
+    blocks = re.split(r"\n\s*\n", text)
+    for block in blocks:
+        block = block.strip()
+        if not block:
+            continue
+        # Réassembler les lignes du bloc en une seule chaîne
+        merged = " ".join(line.strip() for line in block.splitlines() if line.strip())
+        for sentence in _split_rapport(merged):
+            results.append((sentence, source_tag))
+    return results
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # GÉNÉRATION EDGE-TTS
 # ══════════════════════════════════════════════════════════════════════════════
 
-async def _synth_one(text: str, voice: str, mp3_path: str, wav_path: str) -> bool:
+async def _synth_one(text: str, voice: str, rate: str, mp3_path: str, wav_path: str) -> bool:
     try:
         import edge_tts
-        await edge_tts.Communicate(text, voice, rate=RATE, volume=VOLUME).save(mp3_path)
+        await edge_tts.Communicate(text, voice, rate=rate, volume=VOLUME).save(mp3_path)
         if HAS_LIBROSA:
             y, _ = librosa.load(mp3_path, sr=SAMPLE_RATE, mono=True)
             sf.write(wav_path, y, SAMPLE_RATE, subtype="PCM_16")
@@ -173,12 +218,12 @@ async def _synth_one(text: str, voice: str, mp3_path: str, wav_path: str) -> boo
         return False
 
 
-async def _generate_all(tasks: List[Tuple[str, str, str, str]]) -> List[bool]:
+async def _generate_all(tasks: List[Tuple[str, str, str, str, str]]) -> List[bool]:
     sem = asyncio.Semaphore(MAX_CONCURRENT)
 
-    async def _bounded(text, voice, mp3, wav):
+    async def _bounded(text, voice, rate, mp3, wav):
         async with sem:
-            return await _synth_one(text, voice, mp3, wav)
+            return await _synth_one(text, voice, rate, mp3, wav)
 
     coros = [_bounded(*t) for t in tasks]
     try:
@@ -213,12 +258,20 @@ def main() -> None:
     rtf_items     = load_rtf_sentences()
     pdf_items     = load_pdf_sentences()
     rapport_items = load_rapport_sentences()
+    ct_items      = load_txt_file_sentences(CT_TXT,  "tts_ct")
+    mr_items      = load_txt_file_sentences(MR_TXT,  "tts_mr")
+    us_items      = load_txt_file_sentences(US_TXT,  "tts_us")
 
     print(f"  RTF  (expression médicale) : {len(rtf_items):>5} phrases")
     print(f"  PDF  (cérébral)            : {len(pdf_items):>5} phrases")
     print(f"  TXT  (rapports)            : {len(rapport_items):>5} phrases")
+    print(f"  TXT  (CT scanner)          : {len(ct_items):>5} phrases")
+    print(f"  TXT  (MR / IRM)            : {len(mr_items):>5} phrases")
+    print(f"  TXT  (US échographie)      : {len(us_items):>5} phrases")
 
-    all_texts: List[Tuple[str, str]] = rtf_items + pdf_items + rapport_items
+    all_texts: List[Tuple[str, str]] = (
+        rtf_items + pdf_items + rapport_items + ct_items + mr_items + us_items
+    )
     print(f"  ─────────────────────────────────────")
     print(f"  Total                      : {len(all_texts):>5} phrases")
 
@@ -237,7 +290,7 @@ def main() -> None:
     meta     = []   # (text, source, voice, wav_path)
 
     for i, (text, source) in enumerate(all_texts):
-        voice    = VOICES[i % len(VOICES)]
+        voice, rate = VOICE_CONFIGS[i % len(VOICE_CONFIGS)]
         wav_path = os.path.join(OUTPUT_AUDIO_DIR, f"tts_{i + 1:05d}.wav")
         mp3_path = os.path.join(tmp_dir, f"tmp_{i + 1:05d}.mp3")
         meta.append((text, source, voice, wav_path))
@@ -245,13 +298,14 @@ def main() -> None:
         if os.path.exists(wav_path) and os.path.getsize(wav_path) > 1000:
             skipped += 1
         else:
-            tasks.append((text, voice, mp3_path, wav_path))
+            tasks.append((text, voice, rate, mp3_path, wav_path))
 
     print(f"  Déjà générés (skippés) : {skipped}")
     print(f"  À générer              : {len(tasks)}")
 
     # ── 3. Générer ────────────────────────────────────────────────────────
-    print(f"\n[3/4] Génération Edge-TTS (voix : {', '.join(VOICES)})…")
+    voice_names = ", ".join(v for v, _ in VOICE_CONFIGS)
+    print(f"\n[3/4] Génération Edge-TTS ({len(VOICE_CONFIGS)} voix : {voice_names})…")
     if tasks:
         asyncio.run(_generate_all(tasks))
     shutil.rmtree(tmp_dir, ignore_errors=True)

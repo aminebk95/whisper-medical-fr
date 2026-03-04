@@ -1,6 +1,5 @@
 """
-Whisper Training — Windows Safe Version
-GTX 1650 4GB + petit dataset
+Whisper Training — RTX 3080 Ti 12GB
 Compatible Transformers récents
 """
 
@@ -23,19 +22,19 @@ from transformers import (
 # CONFIG
 # ==============================
 
-BASE = r"C:\Users\MSI\Downloads\DATA prete-20260203T090516Z-3-001"
+BASE = os.path.dirname(os.path.abspath(__file__))
 DATASET_PATH = os.path.join(BASE, "data", "whisper_dataset_v2")
 OUTPUT_DIR = os.path.join(BASE, "data", "whisper-medical-fr-v6")
 
 MODEL_NAME = "openai/whisper-small"
 
-FREEZE_N = 4
+FREEZE_N = 2        # Unfreeze top 6 encoder layers (3080 Ti has VRAM headroom)
 NUM_EPOCHS = 20
-BATCH_SIZE = 4
-GRAD_ACCUM = 4
+BATCH_SIZE = 16     # 3080 Ti 12GB handles this easily (was 4 on GTX 1650)
+GRAD_ACCUM = 2      # Effective batch = 32
 LR = 1e-5
 PATIENCE = 3
-MAX_LENGTH = 3000  # Changed from 1500 to 3000 (30 seconds * 100 frames/sec)
+MAX_LENGTH = 3000   # 30 seconds * 100 frames/sec
 
 
 @dataclass
@@ -169,7 +168,7 @@ def main():
         num_train_epochs=NUM_EPOCHS,
         warmup_ratio=0.1,
 
-        fp16=True,
+        bf16=True,              # Ampere (3080 Ti) native — more stable than fp16
         gradient_checkpointing=True,
 
         eval_strategy="epoch",
@@ -185,7 +184,7 @@ def main():
         remove_unused_columns=False,
 
         dataloader_num_workers=0,   # ✅ IMPORTANT WINDOWS
-        dataloader_pin_memory=False,
+        dataloader_pin_memory=True,
     )
 
     trainer = Seq2SeqTrainer(

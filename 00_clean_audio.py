@@ -22,7 +22,7 @@ from pathlib import Path
 # CONFIG — chemins corrigés (raw strings)
 # ==============================
 
-BASE     = r"C:\Users\MSI\Downloads\DATA prete-20260203T090516Z-3-001"
+BASE     = os.path.dirname(os.path.abspath(__file__))
 
 CSV_INPUT    = os.path.join(BASE, "data", "dataset_all_clean.csv")
 OUTPUT_DIR   = os.path.join(BASE, "data", "audio_clean")

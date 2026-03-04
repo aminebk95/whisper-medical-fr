@@ -17,7 +17,7 @@ from transformers import WhisperProcessor
 # CONFIG
 # ==============================
 
-BASE = r"C:\Users\MSI\Downloads\DATA prete-20260203T090516Z-3-001"
+BASE = os.path.dirname(os.path.abspath(__file__))
 
 CSV_PATH = os.path.join(BASE, "data", "dataset_concat.csv")   # ← sortie de 09_concat_audio.py
 OUTPUT_DIR = os.path.join(BASE, "data", "whisper_dataset_v2")   # ← nouveau dossier
