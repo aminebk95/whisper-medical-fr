@@ -127,9 +127,16 @@ _lt_tool = None
 # Règles à désactiver pour le français médical
 # (termes techniques souvent inconnus du correcteur standard)
 DISABLED_RULES = [
-    "FRENCH_WHITESPACE",          # espaces insécables : géré manuellement
-    "UPPERCASE_SENTENCE_START",   # on gère les majuscules nous-mêmes
+    "FRENCH_WHITESPACE",
+    "UPPERCASE_SENTENCE_START",
     "COMMA_PARENTHESIS_WHITESPACE",
+    # Règles qui causent des faux positifs sur les rapports médicaux
+    "PHRASE_REPETITION",
+    "FR_SPELLING_REFORM",
+    "POINTS_VIRGULES",
+    "APOS_TYP",
+    "NON_STANDARD_WORD",
+    "MORFOLOGIK_RULE_FR",         # correcteur orthographique agressif sur termes médicaux
 ]
 
 
@@ -145,6 +152,26 @@ def _get_lt_tool():
     return _lt_tool
 
 
+def _fix_medical_punctuation(text: str) -> str:
+    """
+    Supprime les ? ajoutés par LanguageTool sur des phrases nominales médicales.
+    En radiologie, 'Absence de pneumopéritoine.' est déclaratif, jamais interrogatif.
+    """
+    # Remplace ? par . quand ce n'est pas une vraie question
+    # (les vraies questions commencent par est-ce, y a-t-il, quel, comment, etc.)
+    question_starters = r"(?:est-ce|y a-t-il|quel|quelle|comment|pourquoi|où|quand|combien)"
+    lines = text.split("\n")
+    result = []
+    for line in lines:
+        line = line.strip()
+        if line.endswith("?"):
+            # Vérifie si la ligne ressemble à une vraie question
+            if not re.search(question_starters, line, re.IGNORECASE):
+                line = line[:-1] + "."
+        result.append(line)
+    return "\n".join(result)
+
+
 def correct_orthography(text: str) -> str:
     """
     Corrige l'orthographe et la grammaire via LanguageTool (serveur local).
@@ -155,6 +182,7 @@ def correct_orthography(text: str) -> str:
     try:
         tool = _get_lt_tool()
         corrected = tool.correct(text)
+        corrected = _fix_medical_punctuation(corrected)
         return corrected
     except ImportError:
         print("  [info] LanguageTool non installé → pip install language_tool_python")

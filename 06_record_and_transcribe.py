@@ -184,7 +184,7 @@ def main():
 
     # Ponctuation
     print("Application de la ponctuation...")
-    text = apply_punctuation(raw, auto=True)
+    text = apply_punctuation(raw, auto_punct=True, spellcheck=True)
 
     print()
     print("=" * 60)
